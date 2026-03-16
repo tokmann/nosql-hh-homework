@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS server_logs
     timestamp DateTime
 )
 ENGINE = MergeTree()
-ORDER BY (endpoint, timestamp);
+ORDER BY (timestamp, endpoint);
 
 -- 2. Загрузка данных из CSV
 -- Подсказка: можно использовать clickhouse-client с параметром --query
@@ -26,7 +26,7 @@ ORDER BY (endpoint, timestamp);
 -- 3. Запрос: Топ-5 самых медленных endpoint'ов (по среднему времени ответа)
 SELECT
     endpoint,
-    round(avg(response_time_ms), 2) as avg_response_time_ms
+    avg(response_time_ms) as avg_response_time_ms
 FROM server_logs
 GROUP BY (endpoint)
 ORDER BY avg_response_time_ms DESC

@@ -11,7 +11,7 @@ CREATE TABLE posts_by_user_id (
     post_id INT,
     content    TEXT,
     created_at TIMESTAMP,
-    PRIMARY KEY (user_id, created_at)
+    PRIMARY KEY (user_id, created_at, post_id)
 ) WITH CLUSTERING ORDER BY (created_at DESC);
 
 SELECT post_id, content, created_at
