@@ -21,9 +21,36 @@ public class RateLimiter {
     this.timeWindowSeconds = timeWindowSeconds;
   }
 
+  // Я решил реализовать алгоритм со скользящим окном на zset (отсортированный сет).
+  // Даже в доке редиса про zset написано что один из юз кейсов это rate limiter,
+  // и в целом мне этот алгоритм понравился.
+  // Тесты проверил, прошло все тесты.
   public boolean pass() {
-    // TODO: Implementation
-    return false;
+    // Берем время текущего запроса и считаем время начала окна
+    long now = System.currentTimeMillis();
+    long windowStart = now - timeWindowSeconds * 1000;
+
+    // Удаляем записи которые не попадают в окно
+    redis.zremrangeByScore(label, 0, windowStart);
+
+    // Получаем кол-во запросов
+    long requests = redis.zcard(label);
+
+    // Если кол-во запросов больше допустимого, то возвращаем false,
+    // таким образом у нас не будет тратиться много памяти на хранение запросов.
+    // Например представим ситуацию что окно 3 сек, нас дудосят со скоростью 10000 запросов/сек,
+    // и допустимое кол-во запросов - 100. Максимум будет хранится по этому label 100 запросов, какая бы ни была атака,
+    // так как проверка идет до zadd.
+    if (requests >= maxRequestCount) {
+      return false;
+    }
+
+    // Иначе добавляем текущий запрос (название будет request{какое то рандомное число}, score - время)
+    // рандомное число нужно чтобы запросы не перезаписывали друг друга.
+    redis.zadd(label, now, "request" + Math.random());
+
+    // И теперь возвращаем true так как мы разрешили этот запрос
+    return true;
   }
 
   public static void main(String[] args) {
